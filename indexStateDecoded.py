@@ -26,9 +26,9 @@ def bulkAdds(laws, index='statedecoded'):
         yield {
                 "_id": law['id'],
                 "_index": index,
-                '_type': 'document',
+                '_type': 'law',
                 '_op_type': 'index',
-                'doc': law
+                '_source': law
               }
 
 
