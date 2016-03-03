@@ -6,7 +6,9 @@ settings = {
         "properties": {
             "text": {
               "type": "string",
-              "term_vector": "with_positions_offsets_payloads"
+            },
+            "catch_line": {
+              "type": "string",
             }
         }
       }
