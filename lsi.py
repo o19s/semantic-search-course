@@ -50,7 +50,7 @@ class TermDocCollection(object):
             self._termVectors.append( #append tuple of (docNum, {termNum_i,numberOccurrences_i})
                 (
                     self._docDict[termVector[0]],
-                    {self._termDict[k]:v for k,v in termVector[1].iteritems()}
+                    {self._termDict[k]:v for k,v in termVector[1].items()}
                 )
             )
         self._termDict.freeze()

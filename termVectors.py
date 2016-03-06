@@ -16,9 +16,13 @@ def allCorpusDocs(index='stackexchange', doc_type='post', fields='Body.bigramed'
         "size": 500
     }
     resp = es.search(index=index, doc_type=doc_type, scroll='1m', body=query)
+    i = 500
     while len(resp['hits']['hits']) > 0:
         for doc in resp['hits']['hits']:
             yield doc['_id']
+        print("Retrieved %s ids" % i)
+        i += 500
+        break
         scrollId = resp['_scroll_id']
         resp = es.scroll(scroll_id=scrollId, scroll='1m')
 
@@ -42,11 +46,18 @@ def allTermVectors(docIds):
         for tv in termVectors(docIds=docIdGroup):
             yield tv
 
+def say(a_list):
+    print(" ".join(a_list))
 
 if __name__ == "__main__":
     docIds = [docId for docId in allCorpusDocs()]
     print("Fetching %s Term Vectors" % len(docIds))
 
-    for tv in allTermVectors(docIds):
-        print(tv)
+    from lsi import TermDocCollection
+
+    tdc = TermDocCollection(allTermVectors(docIds), numTopics=150)
+    print("DEMO AUTOGEN SYNONYMS FOR DOCUMENTS")
+    print("\n**star wars document**")
+    import pdb; pdb.set_trace()
+    say(tdc.getBlurredTerms(docIds[10],0.2)[1])
 
