@@ -1,12 +1,51 @@
+analyzers = {
+    "filter" : {
+        "bigram_filter": {
+                "type": "shingle",
+                "max_shingle_size":2,
+                "min_shingle_size":2,
+                "output_unigrams":"false"
+        }
+    },
+    "analyzer": {
+        "nerd_text": {
+            "char_filter": ["html_strip"],
+            "tokenizer": "standard",
+            "filter": ["lowercase", "stop", "snowball"],
+        },
+        "nerd_bigrams": {
+            "char_filter": ["html_strip"],
+            "tokenizer": "standard",
+            "filter": ["lowercase", "stop", "snowball", "bigram_filter"],
+        }
+    }
+}
+
 settings = {
     "mappings": {
       "post": {
         "properties": {
-            "body": {
+            "Body": {
               "type": "string",
+              "analyzer": "nerd_text",
+              "fields": {
+                "bigramed": {
+                  "term_vector": "with_positions_offsets_payloads",
+                  "type": "string",
+                  "analyzer": "nerd_bigrams"
+                }
+              }
             },
-            "title": {
+            "Title": {
               "type": "string",
+              "analyzer": "nerd_text",
+              "fields": {
+                "bigramed": {
+                  "term_vector": "with_positions_offsets_payloads",
+                  "type": "string",
+                  "analyzer": "nerd_bigrams"
+                }
+              }
             }
         }
       }
@@ -14,7 +53,8 @@ settings = {
     "settings": {
       "index" : {
         "number_of_shards" : 1,
-        "number_of_replicas" : 0
+        "number_of_replicas" : 0,
+        "analysis": analyzers
       },
     }
 }
