@@ -100,14 +100,30 @@ class TermDocCollection(object):
         self._uPrime = numpy.dot(u.T,numpy.diag(s))
         return self._uPrime
 
-    def getBlurredTerms(self,doc,cutoff):
-        if isinstance(doc,str):
-            doc = self._docDict[doc]
+    def getTermvector(self,docId):
+        """ Get the initial term vector for docid doc"""
+        print("TV for %s" % docId)
+        if isinstance(docId,str):
+            doc = self._docDict[docId]
+        tv = self._termVectors[doc]
+        import pdb; pdb.set_trace()
+        return {self._termDict[k]: v for k, v in tv[1].items()}
+
+    def getBlurredTerms(self,docId,cutoff=0):
+        print("Fetching for %s" % docId)
+        if isinstance(docId,str):
+            doc = self._docDict[docId]
+        # term-genre affinities
         uPrime = self._getUprime()
+        # v is the doc-genre affinities
         _,_,v = self._getSvd()
+        # doc product for a specific document and term-genre affinities
         blurredField = numpy.dot(uPrime,v[:,doc])
-        tokenIds = numpy.where(blurredField>cutoff)[0]
-        tokens = [self._termDict[id] for id in tokenIds]
+        import pdb; pdb.set_trace()
+        tokenStrengths = numpy.where(blurredField > cutoff, blurredField, 0)
+        tokens = [(self._termDict[termId], strength) for (termId, strength) in enumerate(tokenStrengths)]
+        tokens.sort(key=lambda x: x[1], reverse=True)
+
         return (self._docDict[doc], tokens)
 
     def _getStrippedUprime(self):
