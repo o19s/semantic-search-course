@@ -50,14 +50,27 @@ def say(a_list):
     print(" ".join(a_list))
 
 if __name__ == "__main__":
-    docIds = [docId for docId in allCorpusDocs()]
+    import pickleCache
+    docIds = tvs = None
+    try:
+        docIds = pickleCache.fetch('docIds')
+    except KeyError:
+        docIds = [docId for docId in allCorpusDocs()]
+        pickleCache.save('docIds')
+
     print("Fetching %s Term Vectors" % len(docIds))
 
     from lsi import TermDocCollection
 
-    tdc = TermDocCollection(allTermVectors(docIds), numTopics=150)
+    try:
+        tvs = pickleCache.fetch('tvs')
+    except KeyError:
+        tvs = [tv for tv in allTermVectors]
+        pickleCache.save('tws', tvs)
+
+    tdc = TermDocCollection(tvs, numTopics=150)
     print("DEMO AUTOGEN SYNONYMS FOR DOCUMENTS")
     print("\n**star wars document**")
     import pdb; pdb.set_trace()
-    say(tdc.getBlurredTerms(docIds[10],0.2)[1])
+    say(tdc.getBlurredTerms(docIds[10])[1])
 
