@@ -28,7 +28,7 @@ sv = SparseVector()
 def scoredFingerprint(terms):
     fp = {}
     for term, value in terms.items():
-        fp[term] = value['term_freq'] / (value['doc_freq'])
+        fp[term] = float(value['term_freq']) / float(value['doc_freq'])
     return fp
 
 

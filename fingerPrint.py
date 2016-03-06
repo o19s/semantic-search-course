@@ -26,7 +26,6 @@ sv = SparseVector()
 
 for docId in argv[1:]:
     tvs = es.termvectors(id=docId, index='statedecoded', doc_type='law', fields='text.bigramed')
-    import pdb; pdb.set_trace()
     fingerprint = tvs['term_vectors']['text.bigramed']['terms'].keys()
     sv.add(fingerprint)
 
