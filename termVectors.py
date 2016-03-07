@@ -6,8 +6,12 @@ es = Elasticsearch('http://localhost:9200')
 def scoredFingerprint(terms):
     fp = {}
     for term, value in terms.items():
-        fp[term] = float(value['term_freq']) / float(value['doc_freq'])
+        fp[term] = 1.0 #float(value['term_freq']) / float(value['doc_freq'])
     return fp
+
+def scoredTvs(tvs):
+    for docId, tv in tvs:
+        yield (docId, scoredFingerprint(tv))
 
 
 def allCorpusDocs(index='stackexchange', doc_type='post', fields='Body.bigramed'):
@@ -31,7 +35,7 @@ def termVectors(docIds, index='stackexchange', doc_type='post', field='Body.bigr
     tvs = es.mtermvectors(ids=docIds, index=index, doc_type=doc_type, fields=field, term_statistics=True)
     for tv in tvs['docs']:
         try:
-            yield (tv['_id'], scoredFingerprint(tv['term_vectors'][field]['terms']))
+            yield (tv['_id'], tv['term_vectors'][field]['terms'])
         except KeyError:
             pass
 
@@ -42,14 +46,20 @@ def groupEveryN(l, n=10):
 
 
 def allTermVectors(docIds):
-    for docIdGroup in groupEveryN(docIds):
+    i = n = 100
+    for docIdGroup in groupEveryN(docIds, n=n):
         for tv in termVectors(docIds=docIdGroup):
             yield tv
+        print("Fetched %s termvectors" % i)
+        i += n
 
 def say(a_list):
     print(" ".join(a_list))
 
-if __name__ == "__main__":
+tdc = None
+
+def buildStackexchange():
+    global tdc
     import pickleCache
     docIds = tvs = None
     try:
@@ -63,14 +73,16 @@ if __name__ == "__main__":
     from lsi import TermDocCollection
 
     try:
-        tvs = pickleCache.fetch('tvs')
+        tvs = pickleCache.fetch('tws')
     except KeyError:
-        tvs = [tv for tv in allTermVectors]
+        tvs = [tv for tv in allTermVectors(docIds)]
         pickleCache.save('tws', tvs)
 
-    tdc = TermDocCollection(tvs, numTopics=150)
+    tdc = TermDocCollection(scoredTvs(tvs), numTopics=150)
+    print(tdc.getTermvector(docIds[10]))
+
+
+if __name__ == "__main__":
+    buildStackexchange()
     print("DEMO AUTOGEN SYNONYMS FOR DOCUMENTS")
     print("\n**star wars document**")
-    import pdb; pdb.set_trace()
-    say(tdc.getBlurredTerms(docIds[10])[1])
-
