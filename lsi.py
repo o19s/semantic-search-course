@@ -91,12 +91,16 @@ class TermDocCollection(object):
         self._svd = sparsesvd.sparsesvd(self._getCscMatrix(), self.numTopics)
         return self._svd
 
-    def _getUprime(self):
+    def _getUprime(self, stops=0, drops=0):
         """ u combined with the strength of each topic (s)"""
-        if self._uPrime is not None:
-            return self._uPrime
+        #if self._uPrime is not None:
+        #    return self._uPrime
         # u is
         u,s,v = self._getSvd()
+        for stop in range(stops): #rank reduce by most common (ie stop words)
+            s[stop] = 0
+        for drop in range(drops):
+            s[-drop] = 0
         self._uPrime = numpy.dot(u.T,numpy.diag(s))
         return self._uPrime
 
@@ -106,20 +110,18 @@ class TermDocCollection(object):
         if isinstance(docId,str):
             doc = self._docDict[docId]
         tv = self._termVectors[doc]
-        import pdb; pdb.set_trace()
         return {self._termDict[k]: v for k, v in tv[1].items()}
 
-    def getBlurredTerms(self,docId,cutoff=0):
+    def getBlurredTerms(self,docId,cutoff=0,stops=0,drops=0):
         print("Fetching for %s" % docId)
         if isinstance(docId,str):
             doc = self._docDict[docId]
         # term-genre affinities
-        uPrime = self._getUprime()
+        uPrime = self._getUprime(stops=stops,drops=drops)
         # v is the doc-genre affinities
         _,_,v = self._getSvd()
         # doc product for a specific document and term-genre affinities
         blurredField = numpy.dot(uPrime,v[:,doc])
-        import pdb; pdb.set_trace()
         tokenStrengths = numpy.where(blurredField > cutoff, blurredField, 0)
         tokens = [(self._termDict[termId], strength) for (termId, strength) in enumerate(tokenStrengths)]
         tokens.sort(key=lambda x: x[1], reverse=True)

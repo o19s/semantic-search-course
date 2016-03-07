@@ -1,12 +1,16 @@
 
 from elasticsearch import Elasticsearch
 es = Elasticsearch('http://localhost:9200')
+from math import sqrt
 
 
 def scoredFingerprint(terms):
     fp = {}
     for term, value in terms.items():
-        fp[term] = 1.0 #float(value['term_freq']) / float(value['doc_freq'])
+        if value[1] < 750:
+            fp[term] = (1.0)  #float(value['term_freq']) / float(value['doc_freq'])
+        else:
+            print("Ommitting %s" % term)
     return fp
 
 def scoredTvs(tvs):
@@ -14,7 +18,7 @@ def scoredTvs(tvs):
         yield (docId, scoredFingerprint(tv))
 
 
-def allCorpusDocs(index='stackexchange', doc_type='post', fields='Body.bigramed'):
+def allCorpusDocs(index='stackexchange', doc_type='post'):
     query = {
         "sort": ["_doc"],
         "size": 500
@@ -31,11 +35,18 @@ def allCorpusDocs(index='stackexchange', doc_type='post', fields='Body.bigramed'
         resp = es.scroll(scroll_id=scrollId, scroll='1m')
 
 
+def justTfandDf(terms):
+    tfAndDf = {}
+    for term, value in terms.items():
+
+        tfAndDf[term] = (value['term_freq'], value['doc_freq'])
+    return tfAndDf
+
 def termVectors(docIds, index='stackexchange', doc_type='post', field='Body.bigramed'):
     tvs = es.mtermvectors(ids=docIds, index=index, doc_type=doc_type, fields=field, term_statistics=True)
     for tv in tvs['docs']:
         try:
-            yield (tv['_id'], tv['term_vectors'][field]['terms'])
+            yield (tv['_id'], justTfandDf(tv['term_vectors'][field]['terms']))
         except KeyError:
             pass
 
@@ -45,10 +56,10 @@ def groupEveryN(l, n=10):
         yield l[i:i+n]
 
 
-def allTermVectors(docIds):
+def allTermVectors(docIds, field='Body.bigramed'):
     i = n = 100
     for docIdGroup in groupEveryN(docIds, n=n):
-        for tv in termVectors(docIds=docIdGroup):
+        for tv in termVectors(docIds=docIdGroup, field=field):
             yield tv
         print("Fetched %s termvectors" % i)
         i += n
@@ -58,8 +69,7 @@ def say(a_list):
 
 tdc = None
 
-def buildStackexchange():
-    global tdc
+def buildStackexchange(field='Body.bigramed', numTopics=150):
     import pickleCache
     docIds = tvs = None
     try:
@@ -73,16 +83,21 @@ def buildStackexchange():
     from lsi import TermDocCollection
 
     try:
-        tvs = pickleCache.fetch('tws')
+        tvs = pickleCache.fetch(field + '.tws')
     except KeyError:
-        tvs = [tv for tv in allTermVectors(docIds)]
-        pickleCache.save('tws', tvs)
+        tvs = [tv for tv in allTermVectors(docIds, field=field)]
+        pickleCache.save(field + '.tws', tvs)
 
-    tdc = TermDocCollection(scoredTvs(tvs), numTopics=150)
-    print(tdc.getTermvector(docIds[10]))
+    tdc = TermDocCollection(scoredTvs(tvs), numTopics=numTopics)
+    print(tdc.getTermvector('11336'))
+    blurred = tdc.getBlurredTerms('11336')
+    print(blurred[1][:10])
+
+    return tdc
 
 
 if __name__ == "__main__":
-    buildStackexchange()
+    from sys import argv
+    buildStackexchange(argv[1], 1000)
     print("DEMO AUTOGEN SYNONYMS FOR DOCUMENTS")
     print("\n**star wars document**")

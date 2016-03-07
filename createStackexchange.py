@@ -4,19 +4,25 @@ analyzers = {
                 "type": "shingle",
                 "max_shingle_size":2,
                 "min_shingle_size":2,
-                "output_unigrams":"false"
-        }
+                "output_unigrams":"true"
+        },
+        "min_stemmer": {
+            "type": "stemmer",
+            "name": "minimal_english"
+        },
     },
     "analyzer": {
         "nerd_text": {
             "char_filter": ["html_strip"],
             "tokenizer": "standard",
             "filter": ["lowercase", "stop", "snowball"],
+            "stopwords": "_english_"
         },
         "nerd_bigrams": {
             "char_filter": ["html_strip"],
             "tokenizer": "standard",
-            "filter": ["lowercase", "stop", "snowball", "bigram_filter"],
+            "filter": ["lowercase",  "stop", "bigram_filter"],
+            "stopwords": "_english_"
         }
     }
 }
