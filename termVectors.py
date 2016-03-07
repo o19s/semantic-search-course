@@ -4,18 +4,24 @@ es = Elasticsearch('http://localhost:9200')
 from math import sqrt
 
 
+keepwords = open('keepwords.txt').read()
+keepwords = keepwords.split('\n')
+
 def scoredFingerprint(terms):
     fp = {}
     for term, value in terms.items():
-        if value[1] < 750:
+        if value[1] < 100 or term in keepwords:
             fp[term] = (1.0)  #float(value['term_freq']) / float(value['doc_freq'])
         else:
             print("Ommitting %s" % term)
     return fp
 
-def scoredTvs(tvs):
+def scoredTvs(tvs, sampleEvery=1):
+    i = 0
     for docId, tv in tvs:
-        yield (docId, scoredFingerprint(tv))
+        if (i % sampleEvery == 0):
+            yield (docId, scoredFingerprint(tv))
+        i += 1
 
 
 def allCorpusDocs(index='stackexchange', doc_type='post'):
@@ -69,7 +75,7 @@ def say(a_list):
 
 tdc = None
 
-def buildStackexchange(field='Body.bigramed', numTopics=150):
+def buildStackexchange(field='Body.bigramed', numTopics=50, sampleEvery=1):
     import pickleCache
     docIds = tvs = None
     try:
@@ -88,7 +94,7 @@ def buildStackexchange(field='Body.bigramed', numTopics=150):
         tvs = [tv for tv in allTermVectors(docIds, field=field)]
         pickleCache.save(field + '.tws', tvs)
 
-    tdc = TermDocCollection(scoredTvs(tvs), numTopics=numTopics)
+    tdc = TermDocCollection(scoredTvs(tvs, sampleEvery=sampleEvery), numTopics=numTopics)
     print(tdc.getTermvector('11336'))
     blurred = tdc.getBlurredTerms('11336')
     print(blurred[1][:10])
@@ -98,6 +104,6 @@ def buildStackexchange(field='Body.bigramed', numTopics=150):
 
 if __name__ == "__main__":
     from sys import argv
-    buildStackexchange(argv[1], 1000)
+    buildStackexchange(argv[1], 100)
     print("DEMO AUTOGEN SYNONYMS FOR DOCUMENTS")
     print("\n**star wars document**")
